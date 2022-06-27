@@ -109,13 +109,13 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
   name                = "mtc-vm"
   resource_group_name = azurerm_resource_group.mtc-rg.name
   location            = azurerm_resource_group.mtc-rg.location
-  size                = "Standard_B1s"
+  size                = "Standard_D2_v4"
   admin_username      = "azureadmin"
   network_interface_ids = [
     azurerm_network_interface.mtc-nic.id,
   ]
 
-  custom_data = filebase64("/Users/jared/Downloads/customdata.tpl")
+  custom_data = filebase64("/Users/jared/Downloads/Terraform/Linux-Dev-VM/customdata.tpl")
 
   admin_ssh_key {
     username   = "azureadmin"
