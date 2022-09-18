@@ -1,20 +1,10 @@
-//Azure Source and Provider we are specifying
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "=2.98.0"
-    }
-  }
-}
-
 provider "azurerm" {
   features {}
 }
 
 //Create Resource Group 
-resource "azurerm_resource_group" "mtc-rg" {
-  name     = "mtc-resources"
+resource "azurerm_resource_group" "rg" {
+  name     = "terraform-vm"
   location = "West US"
   tags = {
     environment = "dev"
@@ -22,10 +12,10 @@ resource "azurerm_resource_group" "mtc-rg" {
 }
 
 //Create virtual Network 
-resource "azurerm_virtual_network" "mtc-vn" {
-  name                = "mtc-network"
-  resource_group_name = azurerm_resource_group.mtc-rg.name
-  location            = azurerm_resource_group.mtc-rg.location
+resource "azurerm_virtual_network" "vn" {
+  name                = "terraform-network"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   address_space       = ["10.123.0.0/16"]
 
   tags = {
@@ -34,18 +24,18 @@ resource "azurerm_virtual_network" "mtc-vn" {
 }
 
 //Create Subnet 
-resource "azurerm_subnet" "mtc-subnet" {
-  name                 = "mtc-subnet"
-  resource_group_name  = azurerm_resource_group.mtc-rg.name
-  virtual_network_name = azurerm_virtual_network.mtc-vn.name
+resource "azurerm_subnet" "subnet" {
+  name                 = "terraform-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vn.name
   address_prefixes     = ["10.123.1.0/24"]
 }
 
 //Create Network Security Group
-resource "azurerm_network_security_group" "mtc-nsg" {
-  name                = "mtc-nsg"
-  resource_group_name = azurerm_resource_group.mtc-rg.name
-  location            = azurerm_resource_group.mtc-rg.location
+resource "azurerm_network_security_group" "nsg" {
+  name                = "terraform-nsg"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
 
   tags = {
     environment = "dev"
@@ -53,8 +43,8 @@ resource "azurerm_network_security_group" "mtc-nsg" {
 }
 
 //Create Network Security Group - Rule
-resource "azurerm_network_security_rule" "mtc-dev-rule" {
-  name                        = "mtc-dev-rule"
+resource "azurerm_network_security_rule" "terraform-dev-rule" {
+  name                        = "terraform-dev-rule"
   priority                    = 100
   direction                   = "Inbound"
   access                      = "Allow"
@@ -63,21 +53,21 @@ resource "azurerm_network_security_rule" "mtc-dev-rule" {
   source_address_prefix       = "*"
   destination_port_range      = "*"
   destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.mtc-rg.name
-  network_security_group_name = azurerm_network_security_group.mtc-nsg.name
+  resource_group_name         = azurerm_resource_group.rg.name
+  network_security_group_name = azurerm_network_security_group.nsg.name
 }
 
 //Network Security Group Subnet Association
 resource "azurerm_subnet_network_security_group_association" "mtc-nsg-association" {
-  subnet_id                 = azurerm_subnet.mtc-subnet.id
-  network_security_group_id = azurerm_network_security_group.mtc-nsg.id
+  subnet_id                 = azurerm_subnet.subnet.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 //Create Public IP Address - Dynamic
-resource "azurerm_public_ip" "mtc-ip" {
-  name                = "mtc-ip"
-  resource_group_name = azurerm_resource_group.mtc-rg.name
-  location            = azurerm_resource_group.mtc-rg.location
+resource "azurerm_public_ip" "terraform-ip" {
+  name                = "terraform-ip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   allocation_method   = "Dynamic"
 
   tags = {
@@ -86,17 +76,17 @@ resource "azurerm_public_ip" "mtc-ip" {
 }
 
 //Create Network Interface & Attach Public IP 
-resource "azurerm_network_interface" "mtc-nic" {
-  name                = "mtc-nic"
-  location            = azurerm_resource_group.mtc-rg.location
-  resource_group_name = azurerm_resource_group.mtc-rg.name
+resource "azurerm_network_interface" "terraform-nic" {
+  name                = "terraform-nic"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "interal"
-    subnet_id                     = azurerm_subnet.mtc-subnet.id
+    subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
 
-    public_ip_address_id = azurerm_public_ip.mtc-ip.id
+    public_ip_address_id = azurerm_public_ip.terraform-ip.id
   }
 
   tags = {
@@ -105,21 +95,21 @@ resource "azurerm_network_interface" "mtc-nic" {
 }
 
 //Create Linux VM
-resource "azurerm_linux_virtual_machine" "mtc-vm" {
-  name                = "mtc-vm"
-  resource_group_name = azurerm_resource_group.mtc-rg.name
-  location            = azurerm_resource_group.mtc-rg.location
+resource "azurerm_linux_virtual_machine" "terraform-vm" {
+  name                = "terraform-vm"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   size                = "Standard_D2_v4"
   admin_username      = "azureadmin"
   network_interface_ids = [
-    azurerm_network_interface.mtc-nic.id,
+    azurerm_network_interface.terraform-nic.id,
   ]
 
   custom_data = filebase64("/Users/jared/Downloads/Terraform/Linux-Dev-VM/customdata.tpl")
 
   admin_ssh_key {
     username   = "azureadmin"
-    public_key = file("/Users/jared/.ssh/mtcazurekey.pub")
+    public_key = file("/Users/jared/.ssh/id_rsa.pub")
   }
 
   os_disk {
@@ -138,7 +128,7 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
     command = templatefile("${var.host_os}-ssh-script.tpl", {
       hostname     = self.public_ip_address,
       user         = "azureadmin",
-      identityfile = "/Users/jared/.ssh/mtcazurekey"
+      identityfile = "/Users/jared/.ssh/id_rsa"
     })
     interpreter = ["bash", "-c"]
   }
@@ -148,11 +138,7 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
   }
 }
 
-data "azurerm_public_ip" "mtc-ip-data" {
-  name                = azurerm_public_ip.mtc-ip.name
-  resource_group_name = azurerm_resource_group.mtc-rg.name
-}
-
-output "public_ip_address" {
-  value = "${azurerm_linux_virtual_machine.mtc-vm.name}: ${data.azurerm_public_ip.mtc-ip-data.ip_address}"
+data "azurerm_public_ip" "terraform-ip-data" {
+  name                = azurerm_public_ip.terraform-ip.name
+  resource_group_name = azurerm_resource_group.rg.name
 }
