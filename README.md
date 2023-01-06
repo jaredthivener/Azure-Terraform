@@ -7,4 +7,5 @@ The Azure infrastructure is defined using [Terraform](https://learn.hashicorp.co
 # Learning
 YouTube
 - [Terraform](https://www.youtube.com/playlist?list=PLnWpsLZNgHzVVslxs8Bwq19Ng0ff4XlFv)
+- [Terraform on Azure](https://www.udemy.com/course/terraform-on-azure-services/)
 - [Build a Dev Environment with Terraform and Azure](https://courses.morethancertified.com/p/rfp-terraform-azure)
