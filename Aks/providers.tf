@@ -20,7 +20,7 @@ provider "azapi" {
   # client_id       = "..."
   # client_secret   = "..."
   # tenant_id       = "..."
-  default_location = "eastus"
+  default_location = "eastus2"
   default_tags = {
     team = "Azure deployments"
   }
