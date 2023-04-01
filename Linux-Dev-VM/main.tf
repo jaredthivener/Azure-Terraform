@@ -144,3 +144,7 @@ data "azurerm_public_ip" "terraform-ip-data" {
   name                = azurerm_public_ip.terraform-ip.name
   resource_group_name = azurerm_resource_group.rg.name
 }
+
+output "public_ip_address" {
+  value = azurerm_linux_virtual_machine.terraform-vm.public_ip_address
+}
