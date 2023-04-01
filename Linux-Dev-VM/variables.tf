@@ -1,4 +1,4 @@
 variable "host_os" {
-  type = string
+  type    = string
   default = "linux"
 }
