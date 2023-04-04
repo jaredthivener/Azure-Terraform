@@ -2,9 +2,14 @@ provider "azurerm" {
   features {}
 }
 
+resource "random_integer" "id" {
+  min = 0000
+  max = 9999
+}
+
 //Create Resource Group 
 resource "azurerm_resource_group" "rg" {
-  name     = "terraform-vm"
+  name     = "rg-terraform-vm"
   location = "eastus2"
   tags = {
     environment = "dev"
@@ -12,7 +17,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 //Create virtual Network 
-resource "azurerm_virtual_network" "vn" {
+resource "azurerm_virtual_network" "vnet" {
   name                = "terraform-network"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -23,12 +28,34 @@ resource "azurerm_virtual_network" "vn" {
   }
 }
 
-//Create Subnet 
+//Create Subnet - VM
 resource "azurerm_subnet" "subnet" {
   name                 = "terraform-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vn.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.0.0/24"]
+}
+
+//Create Subnet - Azure Bastion
+resource "azurerm_subnet" "bastion" {
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/26"]
+}
+
+//Create Azure Bastion Host
+resource "azurerm_bastion_host" "bastion" {
+  name                = "terraform-bastion"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  ip_configuration {
+    name                 = "IpConf"
+    public_ip_address_id = azurerm_public_ip.public-ip.id
+    subnet_id            = azurerm_subnet.bastion.id
+  }
+  scale_units = 2
+  sku         = "Standard"
 }
 
 //Create Network Security Group
@@ -64,11 +91,13 @@ resource "azurerm_subnet_network_security_group_association" "mtc-nsg-associatio
 }
 
 //Create Public IP Address - Dynamic
-resource "azurerm_public_ip" "terraform-ip" {
-  name                = "terraform-ip"
+resource "azurerm_public_ip" "public-ip" {
+  name                = "terraform-bastion-ip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
+  sku_tier            = "Regional"
+  sku                 = "Standard"
 
   tags = {
     environment = "dev"
@@ -87,7 +116,7 @@ resource "azurerm_network_interface" "terraform-nic" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
 
-    public_ip_address_id = azurerm_public_ip.terraform-ip.id
+    # public_ip_address_id = azurerm_public_ip.terraform-ip.id
   }
 
   tags = {
@@ -100,17 +129,20 @@ resource "azurerm_linux_virtual_machine" "terraform-vm" {
   name                = "terraform-vm"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  size                = "Standard_D2_v4"
-  admin_username      = "azureadmin"
+  identity {
+    type = "SystemAssigned"
+  }
+  size           = "Standard_D2_v4"
+  admin_username = "azureadmin"
   network_interface_ids = [
     azurerm_network_interface.terraform-nic.id,
   ]
 
-  custom_data = filebase64("/mnt/c/Users/Jared/Downloads/Azure-Terraform/Linux-Dev-VM/customdata.tpl")
+  custom_data = filebase64("/Users/Jared/Downloads/Azure-Terraform/Linux-Dev-VM/customdata.tpl")
 
   admin_ssh_key {
     username   = "azureadmin"
-    public_key = file("/home/jared/.ssh/id_rsa.pub")
+    public_key = file("/Users/jared/.ssh/id_rsa.pub")
   }
 
   os_disk {
@@ -130,7 +162,7 @@ resource "azurerm_linux_virtual_machine" "terraform-vm" {
     command = templatefile("${var.host_os}-ssh-script.tpl", {
       hostname     = self.public_ip_address,
       user         = "azureadmin",
-      identityfile = "/home/jared/.ssh/id_rsa"
+      identityfile = "/Users/jared/.ssh/id_rsa"
     })
     interpreter = ["bash", "-c"]
   }
@@ -140,10 +172,40 @@ resource "azurerm_linux_virtual_machine" "terraform-vm" {
   }
 }
 
-# data "azurerm_public_ip" "terraform-ip-data" {
-#   name                = azurerm_public_ip.terraform-ip.name
-#   resource_group_name = azurerm_resource_group.rg.name
-# }
+data "azurerm_public_ip" "terraform-ip-data" {
+  name                = azurerm_public_ip.public-ip.name
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+data "azurerm_client_config" "user" {}
+
+//Create Azure Key Vault
+resource "azurerm_key_vault" "kv" {
+  name                = "terraform-${random_integer.id.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  tenant_id           = data.azurerm_client_config.user.tenant_id
+  sku_name            = "standard"
+  access_policy = [{
+    application_id          = data.azurerm_client_config.user.object_id
+    object_id               = data.azurerm_client_config.user.object_id
+    tenant_id               = data.azurerm_client_config.user.tenant_id
+    certificate_permissions = ["Backup", "Create", "Delete", "DeleteIssuers", "Get", "GetIssuers", "Import", "List", "ListIssuers", "ManageContacts", "ManageIssuers", "Purge", "Recover", "Restore", "SetIssuers", "Update"]
+    key_permissions         = ["Backup", "Create", "Decrypt", "Delete", "Encrypt", "Get", "Import", "List", "Purge", "Recover", "Restore", "Sign", "UnwrapKey", "Update", "WrapKey", "Release", "Rotate", "GetRotationPolicy", "SetRotationPolicy"]
+    secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
+    storage_permissions     = ["Backup", "Delete", "DeleteSAS", "Get", "GetSAS", "List", "ListSAS", "Purge", "Recover", "RegenerateKey", "Restore", "Set", "SetSAS", "Update"]
+  }]
+}
+
+//Create Azure Key Vault Access Policy - VM 
+resource "azurerm_key_vault_access_policy" "access_policy" {
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.user.tenant_id
+  object_id    = azurerm_linux_virtual_machine.terraform-vm.identity[0].principal_id
+
+  secret_permissions = ["List", "Get"]
+}
+
 
 output "public_ip_address" {
   value = azurerm_linux_virtual_machine.terraform-vm.public_ip_address
