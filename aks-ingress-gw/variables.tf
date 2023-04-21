@@ -7,5 +7,5 @@ variable "location" {
 }
 
 variable "cluster_name" {
-    default = "my-aks-cluster"
+  default = "my-aks-cluster"
 }
