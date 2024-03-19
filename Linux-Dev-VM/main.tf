@@ -190,7 +190,8 @@ resource "azurerm_key_vault" "kv" {
     object_id = azurerm_linux_virtual_machine.terraform-vm.identity[0].principal_id
     secret_permissions = [
       "Get",
-      "List"
+      "List",
+      "Set"
     ]
   }
 
@@ -199,7 +200,8 @@ resource "azurerm_key_vault" "kv" {
     object_id = data.azurerm_client_config.user.object_id
     secret_permissions = [
       "Get",
-      "List"
+      "List",
+      "Set"
     ]
   }
 }
