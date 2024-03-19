@@ -115,8 +115,6 @@ resource "azurerm_network_interface" "terraform-nic" {
     name                          = "interal"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-
-    # public_ip_address_id = azurerm_public_ip.terraform-ip.id
   }
 
   tags = {
@@ -186,24 +184,21 @@ resource "azurerm_key_vault" "kv" {
   resource_group_name = azurerm_resource_group.rg.name
   tenant_id           = data.azurerm_client_config.user.tenant_id
   sku_name            = "standard"
-  access_policy = [{
-    application_id          = data.azurerm_client_config.user.object_id
-    object_id               = data.azurerm_client_config.user.object_id
-    tenant_id               = data.azurerm_client_config.user.tenant_id
-    certificate_permissions = ["Backup", "Create", "Delete", "DeleteIssuers", "Get", "GetIssuers", "Import", "List", "ListIssuers", "ManageContacts", "ManageIssuers", "Purge", "Recover", "Restore", "SetIssuers", "Update"]
-    key_permissions         = ["Backup", "Create", "Decrypt", "Delete", "Encrypt", "Get", "Import", "List", "Purge", "Recover", "Restore", "Sign", "UnwrapKey", "Update", "WrapKey", "Release", "Rotate", "GetRotationPolicy", "SetRotationPolicy"]
-    secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
-    storage_permissions     = ["Backup", "Delete", "DeleteSAS", "Get", "GetSAS", "List", "ListSAS", "Purge", "Recover", "RegenerateKey", "Restore", "Set", "SetSAS", "Update"]
-  }]
+  
+  access_policy {
+    tenant_id = data.azurerm_client_config.user.tenant_id
+    object_id = azurerm_linux_virtual_machine.terraform-vm.identity[0].principal_id
+    secret_permissions = [
+      "Get","List"
+    ]
+  }
 }
 
-//Create Azure Key Vault Access Policy - VM 
-resource "azurerm_key_vault_access_policy" "access_policy" {
+//Create Azure Key Vault secret 
+resource "azurerm_key_vault_secret" "secret" {
+  name         = "ssh-key"
+  value        = file("/Users/jared/.ssh/id_rsa")
   key_vault_id = azurerm_key_vault.kv.id
-  tenant_id    = data.azurerm_client_config.user.tenant_id
-  object_id    = azurerm_linux_virtual_machine.terraform-vm.identity[0].principal_id
-
-  secret_permissions = ["List", "Get"]
 }
 
 
