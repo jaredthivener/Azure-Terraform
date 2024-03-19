@@ -189,10 +189,21 @@ resource "azurerm_key_vault" "kv" {
     tenant_id = data.azurerm_client_config.user.tenant_id
     object_id = azurerm_linux_virtual_machine.terraform-vm.identity[0].principal_id
     secret_permissions = [
-      "Get","List"
+      "get",
+      "list"
+    ]
+  }
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.user.tenant_id
+    object_id = data.azurerm_client_config.user.object_id
+    secret_permissions = [
+      "get",
+      "list"
     ]
   }
 }
+
 
 //Create Azure Key Vault secret 
 resource "azurerm_key_vault_secret" "secret" {
