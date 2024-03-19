@@ -213,8 +213,3 @@ resource "azurerm_key_vault_secret" "secret" {
   value        = file("/Users/jared/.ssh/id_rsa")
   key_vault_id = azurerm_key_vault.kv.id
 }
-
-
-output "public_ip_address" {
-  value = azurerm_linux_virtual_machine.terraform-vm.public_ip_address
-}
