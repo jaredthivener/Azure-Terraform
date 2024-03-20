@@ -24,3 +24,14 @@ cd copacetic
 make
 # OPTIONAL: install copa to a pathed folder
 sudo mv dist/linux_amd64/release/copa /usr/local/bin/
+export BUILDKIT_VERSION=v0.13.1
+export BUILDKIT_PORT=8888
+sudo docker run \
+    --detach \
+    --rm \
+    --privileged \
+    -p 127.0.0.1:$BUILDKIT_PORT:$BUILDKIT_PORT/tcp \
+    --name buildkitd \
+    --entrypoint buildkitd \
+    "moby/buildkit:$BUILDKIT_VERSION" \
+    --addr tcp://0.0.0.0:$BUILDKIT_PORT
