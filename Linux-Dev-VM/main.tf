@@ -90,7 +90,7 @@ resource "azurerm_subnet_network_security_group_association" "mtc-nsg-associatio
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-//Create Public IP Address - Dynamic
+//Create Public IP Address - Static
 resource "azurerm_public_ip" "public-ip" {
   name                = "terraform-bastion-ip"
   resource_group_name = azurerm_resource_group.rg.name
