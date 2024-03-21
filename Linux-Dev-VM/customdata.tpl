@@ -19,11 +19,11 @@ source /etc/profile.d/golang_path.sh &&
 sudo apt-get update -y &&
 sudo sudo apt-get install docker-ce docker-ce-cli containerd.io build-essential git trivy -y &&
 sudo usermod -aG docker ubuntu
-git clone https://github.com/project-copacetic/copacetic
-cd copacetic
-make
+git clone https://github.com/project-copacetic/copacetic &&
+cd copacetic && 
+make &&
 # OPTIONAL: install copa to a pathed folder
-sudo mv dist/linux_amd64/release/copa /usr/local/bin/
+sudo mv dist/linux_amd64/release/copa /usr/local/bin/ &&
 export BUILDKIT_VERSION=v0.13.1
 export BUILDKIT_PORT=8888
 sudo docker run \
