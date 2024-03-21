@@ -58,37 +58,37 @@ resource "azurerm_bastion_host" "bastion" {
   sku         = "Standard"
 }
 
-//Create Network Security Group
-resource "azurerm_network_security_group" "nsg" {
-  name                = "terraform-nsg"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+# //Create Network Security Group
+# resource "azurerm_network_security_group" "nsg" {
+#   name                = "terraform-nsg"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   location            = azurerm_resource_group.rg.location
 
-  tags = {
-    environment = "dev"
-  }
-}
+#   tags = {
+#     environment = "dev"
+#   }
+# }
 
-//Create Network Security Group - Rule
-resource "azurerm_network_security_rule" "terraform-dev-rule" {
-  name                        = "ssh"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  source_address_prefix       = "*"
-  destination_port_range      = "22"
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.rg.name
-  network_security_group_name = azurerm_network_security_group.nsg.name
-}
+# //Create Network Security Group - Rule
+# resource "azurerm_network_security_rule" "terraform-dev-rule" {
+#   name                        = "ssh"
+#   priority                    = 100
+#   direction                   = "Inbound"
+#   access                      = "Allow"
+#   protocol                    = "Tcp"
+#   source_port_range           = "*"
+#   source_address_prefix       = "*"
+#   destination_port_range      = "22"
+#   destination_address_prefix  = "*"
+#   resource_group_name         = azurerm_resource_group.rg.name
+#   network_security_group_name = azurerm_network_security_group.nsg.name
+# }
 
-//Network Security Group Subnet Association
-resource "azurerm_subnet_network_security_group_association" "mtc-nsg-association" {
-  subnet_id                 = azurerm_subnet.subnet.id
-  network_security_group_id = azurerm_network_security_group.nsg.id
-}
+# //Network Security Group Subnet Association
+# resource "azurerm_subnet_network_security_group_association" "mtc-nsg-association" {
+#   subnet_id                 = azurerm_subnet.subnet.id
+#   network_security_group_id = azurerm_network_security_group.nsg.id
+# }
 
 //Create Public IP Address - Static
 resource "azurerm_public_ip" "public-ip" {
